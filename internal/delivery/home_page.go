@@ -1,11 +1,10 @@
 package delivery
 
 import (
-	"fmt"
 	"net/http"
-)
 
-const templateIndex = "templates/index.html"
+	"forum/internal/models"
+)
 
 func (h *Handler) homePage(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -17,12 +16,21 @@ func (h *Handler) homePage(w http.ResponseWriter, r *http.Request) {
 		h.errorPage(w, http.StatusMethodNotAllowed, nil)
 	}
 
-	user := r.Context().Value(contextKeyUser)
-	fmt.Println(user)
-	if err := templateExecute(w, templateIndex, user); err != nil {
-		h.errorPage(w, http.StatusInternalServerError, err)
+	user := r.Context().Value(contextKeyUser).(models.User)
+	// posts, err := h.services.GetAllPosts()
+	// if err != nil {
+	// 	h.errorPage(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
+
+	data := models.TemplateData{
+		User: user,
+		// Posts:    posts,
+		Template: "index",
 	}
-	// надо взять посты и всю информацию о них
-	// если пользователь авторизован, надо чтобы у него была возможность создавать посты, комменты и ставить реакцию
-	// read a cookie and check if user is authorized
+
+	if err := h.tmpl.ExecuteTemplate(w, "base", data); err != nil {
+		h.errorPage(w, http.StatusInternalServerError, err)
+		return
+	}
 }

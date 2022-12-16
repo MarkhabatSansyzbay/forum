@@ -9,15 +9,13 @@ import (
 	"forum/internal/service"
 )
 
-const (
-	templateSignUp = "templates/sign-up.html"
-	templateSignIn = "templates/sign-in.html"
-)
-
 func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		if err := templateExecute(w, templateSignUp, nil); err != nil {
+		data := models.TemplateData{
+			Template: "sign-up",
+		}
+		if err := h.tmpl.ExecuteTemplate(w, "base", data); err != nil {
 			h.errorPage(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -30,21 +28,23 @@ func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
 		email, ok1 := r.Form["email"]
 		username, ok2 := r.Form["username"]
 		password, ok3 := r.Form["password"]
+		confirm, ok4 := r.Form["confirm_password"]
 
-		if !ok1 || !ok2 || !ok3 {
+		if !ok1 || !ok2 || !ok3 || !ok4 {
 			h.errorPage(w, http.StatusBadRequest, nil)
 			return
 		}
 
 		user := models.User{
-			Email:    email[0],
-			Username: username[0],
-			Password: password[0],
+			Email:           email[0],
+			Username:        username[0],
+			Password:        password[0],
+			ConfirmPassword: confirm[0],
 		}
 
-		_, err := h.services.CreateUser(user)
-		if err != nil {
-			if err == service.ErrInvalidData {
+		if err := h.services.CreateUser(user); err != nil {
+			if errors.Is(err, service.ErrInvalidEmail) || errors.Is(err, service.ErrInvalidPassword) ||
+				errors.Is(err, service.ErrInvalidUsername) {
 				h.errorPage(w, http.StatusBadRequest, err)
 				return
 			} else {
@@ -52,6 +52,7 @@ func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 	default:
 		h.errorPage(w, http.StatusMethodNotAllowed, nil)
 	}
@@ -60,7 +61,10 @@ func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		if err := templateExecute(w, templateSignIn, nil); err != nil {
+		data := models.TemplateData{
+			Template: "sign-in",
+		}
+		if err := h.tmpl.ExecuteTemplate(w, "base", data); err != nil {
 			h.errorPage(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -78,23 +82,12 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		possibleUser := models.User{
-			Username: username[0],
-			Password: password[0],
-		}
-
-		user, err := h.services.GetUser(possibleUser)
+		session, err := h.services.SetSession(username[0], password[0])
 		if err != nil {
-			if errors.Is(err, service.ErrNoUser) {
+			if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
 				h.errorPage(w, http.StatusUnauthorized, err)
 				return
 			}
-			h.errorPage(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		session, err := h.services.SetSession(user.Id)
-		if err != nil {
 			h.errorPage(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -114,19 +107,29 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) logOut(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		h.errorPage(w, http.StatusNotFound, nil)
+		return
+	} else if r.Method != http.MethodPost {
+		h.errorPage(w, http.StatusMethodNotAllowed, nil)
+		return
+	}
+
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
-		if err == http.ErrNoCookie {
+		if errors.Is(err, http.ErrNoCookie) {
 			h.errorPage(w, http.StatusUnauthorized, err)
 			return
 		}
 		h.errorPage(w, http.StatusBadRequest, err)
 		return
 	}
+
 	h.services.DeleteSession(cookie.Value)
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",
 		Value:   "",
 		Expires: time.Now(),
 	})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

@@ -1,18 +1,20 @@
 package delivery
 
 import (
+	"html/template"
 	"net/http"
-	"text/template"
 
 	"forum/internal/service"
 )
 
 type Handler struct {
+	tmpl     *template.Template
 	services *service.Service
 }
 
 func NewHandler(service *service.Service) *Handler {
 	return &Handler{
+		tmpl:     template.Must(template.ParseGlob("templates/*.html")),
 		services: service,
 	}
 }
@@ -23,20 +25,9 @@ func (h *Handler) InitRoutes() *http.ServeMux {
 	mux.HandleFunc("/", h.middleware(h.homePage))
 	mux.HandleFunc("/sign-up", h.signUp)
 	mux.HandleFunc("/sign-in", h.signIn)
-	mux.HandleFunc("/logout", h.logOut)
+	mux.HandleFunc("/sign-out", h.logOut)
+
+	mux.Handle("/templates/", http.StripPrefix("/templates", http.FileServer(http.Dir("templates/"))))
 
 	return mux
-}
-
-func templateExecute(w http.ResponseWriter, path string, data any) error {
-	temp, err := template.ParseFiles(path)
-	if err != nil {
-		return err
-	}
-
-	if err = temp.Execute(w, data); err != nil {
-		return err
-	}
-
-	return nil
 }

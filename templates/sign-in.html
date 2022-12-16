@@ -1,12 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    
-</body>
-</html>
+{{ define "sign-in" }}
+<form action="/sign-in" method="post" class="sign-form">
+    <p class="h2 text-center">Sign in to Forum</p>
+    <div class="input-group flex-nowrap mb-3">
+        <span class="input-group-text" id="addon-wrapping">@</span>
+        <input type="text" name="username" class="form-control" placeholder="Username" aria-label="Username" aria-describedby="addon-wrapping">
+    </div>
+    <div class="mb-3">
+        <input type="password" name="password" class="form-control" placeholder="Password" id="exampleInputPassword1">
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+{{end}}

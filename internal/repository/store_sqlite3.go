@@ -5,12 +5,6 @@ import (
 	"fmt"
 )
 
-const (
-	usersTable   = "users"
-	postsTable   = "posts"
-	sessionTable = "sessions"
-)
-
 func OpenSqliteDB(dbName string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", fmt.Sprintf("./%s", dbName))
 	if err != nil {
@@ -29,15 +23,22 @@ func OpenSqliteDB(dbName string) (*sql.DB, error) {
 }
 
 func createTables(db *sql.DB) error {
-	_, err := db.Exec(fmt.Sprintf("CREATE TABLE if not exists %s (id INTEGER PRIMARY KEY, email varchar(319), username varchar(64), password text)", usersTable))
-	if err != nil {
+	query := `
+		CREATE TABLE IF NOT EXISTS USERS(
+			ID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+			Username TEXT NOT NULL UNIQUE,
+			Email TEXT NOT NULL UNIQUE,
+			Password TEXT NOT NULL
+		);
+		CREATE TABLE IF NOT EXISTS SESSIONS(
+			ID INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+			UserID INTEGER NOT NULL UNIQUE,
+			Token VARCHAR(32) NOT NULL,
+			ExpDate DATATIME NOT NULL
+		);
+	`
+	if _, err := db.Exec(query); err != nil {
 		return err
 	}
-
-	_, err = db.Exec(fmt.Sprintf("CREATE TABLE if not exists %s (id INTEGER PRIMARY KEY, user_id INTEGER, token varchar(32), expiration_date DATETIME, FOREIGN KEY(user_id) REFERENCES users(id))", sessionTable))
-	if err != nil {
-		return err
-	}
-	// FOR POSTS AND ...
 	return nil
 }

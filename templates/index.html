@@ -1,12 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-        {{.}}
-</body>
-</html>
+{{define "index"}}
+    {{ if .Posts }}
+    <div class="posts">
+        {{range .Posts}}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mt-0">{{.Title}}</h5>
+                <p class="card-text">{{.Content}}</p>
+                <a href="/posts/{{.ID}}" class="btn btn-primary stretched-link">Go to the Post</a>
+                <p>{{.Categories}}</p>
+            </div>         
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+{{end}}

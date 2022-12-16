@@ -26,8 +26,6 @@ func (h *Handler) middleware(next http.HandlerFunc) http.HandlerFunc {
 				fmt.Printf("user by token: %s", err)
 				user = models.User{}
 			}
-
-			// h.services.CheckSession(cookie.Value)
 		default:
 			h.errorPage(w, http.StatusBadRequest, err)
 		}

@@ -9,10 +9,18 @@ import (
 
 	"forum/internal/models"
 	"forum/internal/repository"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
+type Authorization interface {
+	CreateUser(user models.User) error
+	SetSession(username, password string) (models.Session, error)
+	DeleteSession(token string) error
+	UserByToken(token string) (models.User, error)
+}
+
 var (
-	ErrInvalidData   = errors.New("invalid data to create a user")
 	ErrNoUser        = errors.New("user doesn't exist")
 	ErrWrongPassword = errors.New("wrong password")
 )
@@ -27,37 +35,28 @@ func NewAuthService(repo repository.Authorization) *AuthService {
 	}
 }
 
-func (s *AuthService) CreateUser(newUser models.User) (int64, error) {
-	// encrypt the password
-	user, err := s.repo.GetUser(newUser.Username)
-	// validation
+func (s *AuthService) CreateUser(user models.User) error {
+	if err := checkUserInfo(user); err != nil {
+		return err
+	}
+
+	password, err := s.generatePasswordHash(user.Password)
 	if err != nil {
-		return 0, fmt.Errorf("create user -> get user error: %s", err)
+		return err
 	}
-	if user.Username != "" {
-		return 0, ErrInvalidData
-	}
-	return s.repo.CreateUser(newUser)
+
+	user.Password = password
+
+	return s.repo.CreateUser(user)
 }
 
-func (s *AuthService) GetUser(possibleUser models.User) (models.User, error) {
-	user, err := s.repo.GetUser(possibleUser.Username)
+func (s *AuthService) SetSession(username, password string) (models.Session, error) {
+	user, err := s.checkUser(username, password)
 	if err != nil {
-		return user, err
+		return models.Session{}, err
 	}
 
-	if user.Username == "" {
-		return user, ErrNoUser
-	}
-
-	if possibleUser.Password != user.Password {
-		return user, ErrWrongPassword
-	}
-	return user, nil
-}
-
-func (s *AuthService) SetSession(userId int64) (models.Session, error) {
-	s.repo.DeleteSessionByUserId(userId)
+	s.repo.DeleteSessionByUserId(user.ID)
 
 	token, err := s.generateToken()
 	if err != nil {
@@ -65,38 +64,37 @@ func (s *AuthService) SetSession(userId int64) (models.Session, error) {
 	}
 
 	session := models.Session{
-		UserId:         userId,
+		UserID:         user.ID,
 		Token:          token,
-		ExpirationDate: time.Now().Add(time.Second * 45),
+		ExpirationDate: time.Now().Add(time.Second * 120),
 	}
 
-	_, err = s.repo.CreateSession(session)
-	if err != nil {
-		return models.Session{}, err
+	if err = s.repo.CreateSession(session); err != nil {
+		return models.Session{}, fmt.Errorf("set session -> error creating session: %s", err)
 	}
 
 	return session, nil
 }
 
-func (s *AuthService) DeleteSession(token string) (int64, error) {
+func (s *AuthService) DeleteSession(token string) error {
 	return s.repo.DeleteSession(token)
-}
-
-func (s *AuthService) CheckSession(token string) (int64, error) {
-	session, err := s.repo.GetSession(token)
-	if err != nil {
-		return 0, err
-	}
-
-	if session.ExpirationDate.Before(time.Now()) {
-		return s.repo.DeleteSession(token)
-	}
-
-	return 0, nil
 }
 
 func (s *AuthService) UserByToken(token string) (models.User, error) {
 	return s.repo.UserByToken(token)
+}
+
+func (s *AuthService) checkUser(username, password string) (models.User, error) {
+	user, err := s.repo.GetUser(username)
+	if err != nil {
+		return user, ErrNoUser
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return user, ErrWrongPassword
+	}
+
+	return user, nil
 }
 
 func (s *AuthService) generateToken() (string, error) {
@@ -108,6 +106,7 @@ func (s *AuthService) generateToken() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// func (s *AuthService) encryptPassword(password string) string {
-
-// }
+func (s *AuthService) generatePasswordHash(password string) (string, error) {
+	pass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	return string(pass), err
+}
