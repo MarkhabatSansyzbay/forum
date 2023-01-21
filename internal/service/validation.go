@@ -2,10 +2,9 @@ package service
 
 import (
 	"errors"
+	"forum/internal/models"
 	"regexp"
 	"strings"
-
-	"forum/internal/models"
 )
 
 var (
@@ -36,7 +35,7 @@ func checkPassword(password string) bool {
 	numbers := "0123456789"
 	lowerCase := "qwertyuiopasdfghjklzxcvbnm"
 	upperCase := "QWERTYUIOPASDFGHJKLZXCVBNM"
-	symbols := "@#$%^&*()_-+={[}]|\\:;<,>.?/"
+	symbols := "!@#$%^&*()_-+={[}]|\\:;<,>.?/"
 
 	if len(password) < 8 || len(password) > 20 {
 		return false

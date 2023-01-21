@@ -1,0 +1,45 @@
+{{define "create-post"}}
+<form action="/posts/create" method="post" class="create-post-form">
+    <p class="h2 text-center">Create a new post</p>
+    <div class="mb-3">
+        <label for="exampleFormControlTextarea1" class="form-label">Title</label>
+        <input name="title" class="form-control" type="text" aria-label="default input example">
+    </div>
+    <div class="mb-3">
+        <label for="exampleFormControlTextarea1" class="form-label">Content</label>
+        <textarea name="content" class="form-control" id="exampleFormControlTextarea1" rows="3" required></textarea>
+    </div>
+    <div class="post-categories">
+        <label for="exampleFormControlTextarea1" class="form-label">Post categories</label><br>
+        <div class="form-check form-check-inline">
+            <input name="category" class="form-check-input" type="checkbox" id="inlineCheckbox1" value="alem">
+            <label class="form-check-label" for="inlineCheckbox1">alem</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input name="category" class="form-check-input" type="checkbox" id="inlineCheckbox2" value="humor">
+            <label class="form-check-label" for="inlineCheckbox2">humor</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input name="category" class="form-check-input" type="checkbox" id="inlineCheckbox3" value="study">
+            <label class="form-check-label" for="inlineCheckbox3">study</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input name="category" class="form-check-input" type="checkbox" id="inlineCheckbox3" value="books">
+            <label class="form-check-label" for="inlineCheckbox3">books</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input name="category" class="form-check-input" type="checkbox" id="inlineCheckbox3" value="music">
+            <label class="form-check-label" for="inlineCheckbox3">music</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input name="category" class="form-check-input" type="checkbox" id="inlineCheckbox3" value="food">
+            <label class="form-check-label" for="inlineCheckbox3">food</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input name="category" class="form-check-input" type="checkbox" id="inlineCheckbox3" value="other">
+            <label class="form-check-label" for="inlineCheckbox3">other</label>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Create a post</button>
+</form>
+{{end}}

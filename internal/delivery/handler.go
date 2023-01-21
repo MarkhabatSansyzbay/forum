@@ -27,6 +27,14 @@ func (h *Handler) InitRoutes() *http.ServeMux {
 	mux.HandleFunc("/sign-in", h.signIn)
 	mux.HandleFunc("/sign-out", h.logOut)
 
+	mux.HandleFunc("/posts/", h.middleware(h.postPage))
+	mux.HandleFunc("/posts/create", h.middleware(h.createPost))
+	mux.HandleFunc("/posts/react/", h.middleware(h.reactToPost))
+	mux.HandleFunc("/my-posts", h.middleware(h.myPosts))
+	mux.HandleFunc("/liked-posts", h.middleware(h.likedPosts))
+
+	mux.HandleFunc("/comment/react/", h.middleware(h.reactComment))
+
 	mux.Handle("/templates/", http.StripPrefix("/templates", http.FileServer(http.Dir("templates/"))))
 
 	return mux

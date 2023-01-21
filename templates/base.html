@@ -20,10 +20,15 @@
                     {{.User.Username}}
                 </a>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#">Your Profile</a></li>
+                    <li><a class="dropdown-item" href="/my-posts">My Posts</a></li>
+                    <li><a class="dropdown-item" href="/liked-posts">Liked Posts</a></li>
                     <li><a class="dropdown-item" href="/posts/create">Create a Post</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="/logout">Sign Out</a></li>
+                    <form action="/sign-out" method="post">
+                        <button class="signOut">
+                            Sign out
+                        </button>
+                    </form>
                 </ul>
             </div>
             {{ else }}
@@ -45,8 +50,10 @@
                 {{template "sign-in" .}}
             {{else if eq .Template "index"}}
                 {{template "index" .}}
-            {{else if eq .Template "error"}}
-                {{template "error" .}}
+            {{else if eq .Template "create-post"}}
+                {{template "create-post" .}}
+            {{else if eq .Template "post-page"}}
+                {{template "post-page" .}}
             {{end}}
         </div>
     </main>

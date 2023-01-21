@@ -5,6 +5,7 @@ type TemplateData struct {
 	User     User
 	Post     Post
 	Posts    []Post
+	Comments []Comment
 	Error    ErrorMsg
 }
 

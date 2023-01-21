@@ -1,5 +1,14 @@
 package models
 
 type Post struct {
-	Id int
+	ID           int
+	AuthorID     int
+	LikeCount    int
+	DislikeCount int
+	CommentCount int
+	Vote         int
+	Author       string
+	Title        string
+	Content      string
+	Categories   []string
 }

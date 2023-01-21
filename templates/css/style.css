@@ -1,0 +1,173 @@
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.posts {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    width: 70%;
+}
+
+.posts .card {
+    margin-top: 15px;
+}
+
+.sign-form {
+    margin-top: 100px;
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.h2 {
+    margin-bottom: 30px;
+}
+
+nav, .btn {
+    background-color: #7537e9;
+    color: white;
+}
+
+.filter {
+    width: 80%;
+    margin-top: 30px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.category-link {
+    padding: 15px 25px;
+    border: 1px solid #7537e9;
+    border-radius: 10px;
+}
+
+.create-post-form {
+    margin-top: 100px;
+    width: 70%;
+}
+
+.post-categories {
+    margin-bottom: 20px;
+}
+
+.error-msg {
+    margin: 0 auto;
+    margin-top: 100px;
+    text-align: center;
+}
+
+.post {
+    margin-top: 100px;
+    width: 70%;
+    border: 1px solid #7537e9;
+    border-radius: 10px;
+    padding: 20px 0px;
+    display: flex;
+    flex-direction: column;
+}
+
+.post a, p {
+    margin: 0 20px;
+}
+
+.divider {
+    width: 100%;
+    margin: 15px 0;
+    border-top: 1px solid #7537e9;
+}
+
+.new-comment {
+    margin: 10px;
+    display: flex;
+}
+
+a {
+    color: black;
+    font-weight: bold;
+}
+
+a:link {
+    text-decoration: none;    
+}
+
+.categories {
+    margin-top: 10px;
+}
+
+.categories a {
+    color:#7537e9;
+}
+
+.reactions {
+    display: flex;
+    margin-top: 20px;
+}
+
+.react {
+    display: flex;
+    align-items: center;
+    margin: 0 20px 0 0;
+}
+
+.react img {
+    width: 22px;
+    height: 22px;
+}
+
+.count {
+    padding: 0 10px 0 0;
+}
+
+.vote{
+    background: url(../img/like.png) no-repeat;
+    background-size: 100%;
+    width: 20px;
+    height: 20px;
+    border: none;
+    cursor: pointer;
+}
+
+.voted{
+    background: url(../img/liked.png) no-repeat;
+    background-size: 100%;
+    width: 20px;
+    height: 20px;
+    border: none;
+    cursor: pointer;
+}
+
+.vote-dislike {
+    rotate: 180deg;
+}
+
+.comment {
+    margin-top: 0px;
+}
+
+.vote-comment {
+    background: url(../img/like.png) no-repeat;
+    background-size: 100%;
+    width: 15px;
+    height: 15px;
+    border: none;
+    cursor: pointer;
+}
+
+.voted-comment {
+    background: url(../img/liked.png) no-repeat;
+    background-size: 100%;
+    width: 15px;
+    height: 15px;
+    border: none;
+    cursor: pointer;
+}
+
+.signOut {
+    border: 0px;
+    background-color: white;
+    padding-left: 15px;
+}
