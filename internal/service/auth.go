@@ -2,6 +2,7 @@ package service
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -23,7 +24,11 @@ type Authorization interface {
 var (
 	ErrNoUser        = errors.New("user doesn't exist")
 	ErrWrongPassword = errors.New("wrong password")
+	ErrUsernameTaken = errors.New("username is already taken")
+	ErrEmailTaken    = errors.New("email address is already taken")
 )
+
+const sessionTime = time.Hour * 6
 
 type AuthService struct {
 	repo repository.Authorization
@@ -36,6 +41,20 @@ func NewAuthService(repo repository.Authorization) *AuthService {
 }
 
 func (s *AuthService) CreateUser(user models.User) error {
+	if _, err := s.repo.GetUser("", user.Email); err != sql.ErrNoRows {
+		if err == nil {
+			return ErrEmailTaken
+		}
+		return err
+	}
+
+	if _, err := s.repo.GetUser(user.Username, ""); err != sql.ErrNoRows {
+		if err == nil {
+			return ErrUsernameTaken
+		}
+		return err
+	}
+
 	if err := checkUserInfo(user); err != nil {
 		return err
 	}
@@ -66,11 +85,11 @@ func (s *AuthService) SetSession(username, password string) (models.Session, err
 	session := models.Session{
 		UserID:         user.ID,
 		Token:          token,
-		ExpirationDate: time.Now().Add(time.Second * 120),
+		ExpirationDate: time.Now().Add(sessionTime),
 	}
 
 	if err = s.repo.CreateSession(session); err != nil {
-		return models.Session{}, fmt.Errorf("set session -> error creating session: %s", err)
+		return session, fmt.Errorf("set session -> error creating session: %s", err)
 	}
 
 	return session, nil
@@ -81,11 +100,15 @@ func (s *AuthService) DeleteSession(token string) error {
 }
 
 func (s *AuthService) UserByToken(token string) (models.User, error) {
-	return s.repo.UserByToken(token)
+	user, err := s.repo.UserByToken(token)
+	if err != nil && err != sql.ErrNoRows {
+		return user, nil
+	}
+	return user, nil
 }
 
 func (s *AuthService) checkUser(username, password string) (models.User, error) {
-	user, err := s.repo.GetUser(username)
+	user, err := s.repo.GetUser(username, "")
 	if err != nil {
 		return user, ErrNoUser
 	}

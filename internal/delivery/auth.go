@@ -42,9 +42,10 @@ func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
 			ConfirmPassword: confirm[0],
 		}
 
-		if err := h.services.CreateUser(user); err != nil {
+		if err := h.services.Authorization.CreateUser(user); err != nil {
 			if errors.Is(err, service.ErrInvalidEmail) || errors.Is(err, service.ErrInvalidPassword) ||
-				errors.Is(err, service.ErrInvalidUsername) {
+				errors.Is(err, service.ErrInvalidUsername) || errors.Is(err, service.ErrUsernameTaken) ||
+				errors.Is(err, service.ErrEmailTaken) {
 				h.errorPage(w, http.StatusBadRequest, err)
 				return
 			} else {
@@ -82,7 +83,7 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		session, err := h.services.SetSession(username[0], password[0])
+		session, err := h.services.Authorization.SetSession(username[0], password[0])
 		if err != nil {
 			if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
 				h.errorPage(w, http.StatusUnauthorized, err)
@@ -110,7 +111,9 @@ func (h *Handler) logOut(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		h.errorPage(w, http.StatusNotFound, nil)
 		return
-	} else if r.Method != http.MethodPost {
+	}
+
+	if r.Method != http.MethodPost {
 		h.errorPage(w, http.StatusMethodNotAllowed, nil)
 		return
 	}
@@ -125,7 +128,11 @@ func (h *Handler) logOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.services.DeleteSession(cookie.Value)
+	if err := h.services.Authorization.DeleteSession(cookie.Value); err != nil {
+		h.errorPage(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",
 		Value:   "",
