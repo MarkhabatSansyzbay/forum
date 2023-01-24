@@ -38,30 +38,35 @@
                         <a href="/?category={{.}}">{{.}}</a>
                     {{end}}
                 </div>
-                    <div class="reactions">
-                        <form method="post">
-                            <div class="react">
-                                <p class="count">{{ .LikeCount }}</p>
-                                <button name="postID" {{if eq .Vote 1}} class="voted" {{else}} class="vote" {{end}} value="{{.ID}}" type="submit" {{ if not $username}} disabled {{ end }}>
-                                    <input type="hidden" name="react" value="1" >
-                                </button>
-                            </div>
-                        </form>
-                        <form method="post">
-                            <div class="react">
-                                <p class="count">{{ .DislikeCount }}</p>
-                                <button name="postID" {{if eq .Vote -1}} class="voted vote-dislike" {{else}} class="vote vote-dislike" {{end}} value="{{.ID}}" type="submit" {{ if not $username }} disabled {{ end }}>
-                                    <input type="hidden" name="react" value="-1">
-                                </button>
-                            </div>
-                        </form>
+                <div class="imgsContainer">
+                    {{range .ImagesPath}}
+                        <img src="{{.}}" alt="picture">
+                    {{end}}
+                </div>
+                <div class="reactions">
+                    <form method="post">
                         <div class="react">
-                            <p class="count">{{ .CommentCount }}</p>
-                            <a href="/posts/{{.ID}}" class="btn-primary">
-                                <img src="/templates/img/chat.png" alt="comment">
-                            </a>
+                            <p class="count">{{ .LikeCount }}</p>
+                            <button name="postID" {{if eq .Vote 1}} class="voted" {{else}} class="vote" {{end}} value="{{.ID}}" type="submit" {{ if not $username}} disabled {{ end }}>
+                                <input type="hidden" name="react" value="1" >
+                            </button>
                         </div>
+                    </form>
+                    <form method="post">
+                        <div class="react">
+                            <p class="count">{{ .DislikeCount }}</p>
+                            <button name="postID" {{if eq .Vote -1}} class="voted vote-dislike" {{else}} class="vote vote-dislike" {{end}} value="{{.ID}}" type="submit" {{ if not $username }} disabled {{ end }}>
+                                <input type="hidden" name="react" value="-1">
+                            </button>
+                        </div>
+                    </form>
+                    <div class="react">
+                        <p class="count">{{ .CommentCount }}</p>
+                        <a href="/posts/{{.ID}}" class="btn-primary">
+                            <img src="/templates/img/chat.png" alt="comment">
+                        </a>
                     </div>
+                </div>
                 </form>
             </div>     
         </div>

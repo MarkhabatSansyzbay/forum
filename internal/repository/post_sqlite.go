@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"html/template"
 
 	"forum/internal/models"
 )
@@ -325,7 +326,7 @@ func (s *PostSqlite) getReactionToPost(userID int, postID int) (int, error) {
 	return vote, nil
 }
 
-func (s *PostSqlite) getPostImages(postID int) ([]string, error) {
+func (s *PostSqlite) getPostImages(postID int) ([]template.URL, error) {
 	const query = `
 		SELECT Image FROM IMAGES WHERE PostID = $1
 	`
@@ -336,9 +337,9 @@ func (s *PostSqlite) getPostImages(postID int) ([]string, error) {
 
 	defer rows.Close()
 
-	var images []string
+	var images []template.URL
 	for rows.Next() {
-		var image string
+		var image template.URL
 		if err := rows.Scan(&image); err != nil {
 			return images, err
 		}

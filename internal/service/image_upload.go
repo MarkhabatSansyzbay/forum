@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -19,8 +20,8 @@ var (
 const imgMaxSize = 5 << 20
 
 // SaveImages reads image files, saves it and return its base64 encoding as a slice
-func SaveImages(images []*multipart.FileHeader) ([]string, error) {
-	paths := make([]string, len(images))
+func SaveImages(images []*multipart.FileHeader) ([]template.URL, error) {
+	paths := make([]template.URL, len(images))
 	for i, fileHeader := range images {
 		if fileHeader.Size > imgMaxSize {
 			return nil, ErrImgSize
@@ -58,7 +59,7 @@ func SaveImages(images []*multipart.FileHeader) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		paths[i] = path
+		paths[i] = template.URL(path)
 	}
 	return paths, nil
 }
