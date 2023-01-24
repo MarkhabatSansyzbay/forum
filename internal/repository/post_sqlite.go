@@ -60,6 +60,15 @@ func (s *PostSqlite) CreatePost(post models.Post) error {
 		}
 	}
 
+	for _, path := range post.ImagesPath {
+		query := `
+			INSERT INTO IMAGES (PostID, Image) VALUES ($1, $2)
+		`
+		if _, err := s.db.Exec(query, id, path); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -93,6 +102,14 @@ func (s *PostSqlite) GetPostById(postID, UserID int) (models.Post, error) {
 		vote = 0
 	}
 	post.Vote = vote
+
+	images, err := s.getPostImages(post.ID)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return post, err
+		}
+	}
+	post.ImagesPath = images
 
 	return post, nil
 }
@@ -136,6 +153,14 @@ func (s *PostSqlite) GetAllPosts(userID int) ([]models.Post, error) {
 			vote = 0
 		}
 		post.Vote = vote
+
+		images, err := s.getPostImages(post.ID)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return posts, err
+			}
+		}
+		post.ImagesPath = images
 
 		posts = append(posts, post)
 	}
@@ -298,4 +323,28 @@ func (s *PostSqlite) getReactionToPost(userID int, postID int) (int, error) {
 	}
 
 	return vote, nil
+}
+
+func (s *PostSqlite) getPostImages(postID int) ([]string, error) {
+	const query = `
+		SELECT Image FROM IMAGES WHERE PostID = $1
+	`
+	rows, err := s.db.Query(query, postID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var images []string
+	for rows.Next() {
+		var image string
+		if err := rows.Scan(&image); err != nil {
+			return images, err
+		}
+
+		images = append(images, image)
+	}
+
+	return images, err
 }
