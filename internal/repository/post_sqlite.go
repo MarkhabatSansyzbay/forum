@@ -301,6 +301,14 @@ func (s *PostSqlite) GetLikedPosts(userID int) ([]models.Post, error) {
 
 		post.Vote = 1
 
+		images, err := s.getPostImages(post.ID)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return posts, err
+			}
+		}
+		post.ImagesPath = images
+
 		posts = append(posts, post)
 	}
 	return posts, nil

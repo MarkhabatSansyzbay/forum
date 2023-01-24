@@ -4,6 +4,11 @@
         <div class="divider"></div>
         <h2 class="text-center text-break">{{.Post.Title}}</h2>
         <p class="text-break">{{.Post.Content}}</p>
+        <div class="img-fluid">
+            {{range .Post.ImagesPath}}
+                <img src="{{.}}" alt="picture">
+            {{end}}
+        </div>
         <form action="/posts/react/{{.Post.ID}}" method="Post">
             <div class="reactions">
                 {{if eq .Post.Vote 1}}
