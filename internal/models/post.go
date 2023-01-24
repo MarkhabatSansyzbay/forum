@@ -10,5 +10,6 @@ type Post struct {
 	Author       string
 	Title        string
 	Content      string
+	ImgPath      string
 	Categories   []string
 }

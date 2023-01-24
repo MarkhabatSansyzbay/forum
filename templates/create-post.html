@@ -1,5 +1,5 @@
 {{define "create-post"}}
-<form action="/posts/create" method="post" class="create-post-form">
+<form action="/posts/create" method="post" class="create-post-form" enctype="multipart/form-data">
     <p class="h2 text-center">Create a new post</p>
     <div class="mb-3">
         <label for="exampleFormControlTextarea1" class="form-label">Title</label>
@@ -8,6 +8,10 @@
     <div class="mb-3">
         <label for="exampleFormControlTextarea1" class="form-label">Content</label>
         <textarea name="content" class="form-control" id="exampleFormControlTextarea1" rows="3" required></textarea>
+    </div>
+    <div class="mb-3">
+        <label for="formFileMultiple" class="form-label">Image Upload</label>
+        <input name="image" class="form-control" type="file" id="formFileMultiple" multiple>
     </div>
     <div class="post-categories">
         <label for="exampleFormControlTextarea1" class="form-label">Post categories</label><br>
