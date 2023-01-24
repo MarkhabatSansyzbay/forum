@@ -3,10 +3,8 @@ package delivery
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -129,57 +127,7 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 		}
 
 		images := r.MultipartForm.File["image"]
-
-		for _, fileHeader := range images {
-			if fileHeader.Size > 5<<20 {
-				h.errorPage(w, http.StatusBadRequest, errors.New("file size is too big"))
-				return
-			}
-			file, err := fileHeader.Open()
-			if err != nil {
-				h.errorPage(w, http.StatusInternalServerError, err)
-				return
-			}
-			defer file.Close()
-
-			buff := make([]byte, 512)
-			_, err = file.Read(buff)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			filetype := http.DetectContentType(buff)
-			if filetype != "image/jpeg" && filetype != "image/png" && filetype != "image/gif" && filetype != "image/svg" {
-				http.Error(w, "The provided file format is not allowed. Please upload a JPEG or PNG image", http.StatusBadRequest)
-				return
-			}
-
-			_, err = file.Seek(0, io.SeekStart)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			err = os.MkdirAll("./uploads", os.ModePerm)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			f, err := os.Create(fmt.Sprintf("./uploads/%s", fileHeader.Filename))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			defer f.Close()
-
-			_, err = io.Copy(f, file)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-		}
+		service.SaveImages(images)
 
 		post := models.Post{
 			Title:      title[0],
