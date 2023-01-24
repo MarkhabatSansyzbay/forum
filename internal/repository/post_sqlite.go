@@ -209,6 +209,14 @@ func (s *PostSqlite) GetAllUserPosts(userID int) ([]models.Post, error) {
 		}
 		post.Vote = vote
 
+		images, err := s.getPostImages(post.ID)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return posts, err
+			}
+		}
+		post.ImagesPath = images
+
 		posts = append(posts, post)
 	}
 
@@ -249,6 +257,15 @@ func (s *PostSqlite) GetPostsByCategory(UserID int, Category string) ([]models.P
 			vote = 0
 		}
 		post.Vote = vote
+
+		images, err := s.getPostImages(post.ID)
+		if err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return posts, err
+			}
+		}
+		post.ImagesPath = images
+
 		posts = append(posts, post)
 	}
 	return posts, nil
