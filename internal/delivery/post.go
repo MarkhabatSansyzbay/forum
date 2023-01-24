@@ -127,13 +127,22 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 		}
 
 		images := r.MultipartForm.File["image"]
-		service.SaveImages(images)
+		paths, err := service.SaveImages(images)
+		if err != nil {
+			if errors.Is(err, service.ErrImgSize) || errors.Is(err, service.ErrImgFormat) {
+				h.errorPage(w, http.StatusBadRequest, err)
+				return
+			}
+			h.errorPage(w, http.StatusInternalServerError, err)
+			return
+		}
 
 		post := models.Post{
 			Title:      title[0],
 			AuthorID:   user.ID,
 			Content:    content[0],
 			Categories: category,
+			ImagesPath: paths,
 		}
 
 		if err := h.services.Post.CreatePost(post); err != nil {
