@@ -2,14 +2,17 @@ package main
 
 import (
 	"fmt"
+	"log"
+
 	"forum/internal/delivery"
 	"forum/internal/repository"
 	"forum/internal/server"
 	"forum/internal/service"
-	"log"
 
 	_ "github.com/mattn/go-sqlite3"
 )
+
+const port = "8080"
 
 func main() {
 	db, err := repository.OpenSqliteDB("store.db")
@@ -22,9 +25,9 @@ func main() {
 	handler := delivery.NewHandler(service)
 	server := new(server.Server)
 
-	fmt.Printf("Starting server at port 8081\nhttp://localhost:8081/\n")
+	fmt.Printf("Starting server at port %s\nhttp://localhost:%s/\n", port, port)
 
-	if err := server.Run("8081", handler.InitRoutes()); err != nil {
+	if err := server.Run(port, handler.InitRoutes()); err != nil {
 		log.Fatalf("error while running the server: %s", err.Error())
 	}
 }
