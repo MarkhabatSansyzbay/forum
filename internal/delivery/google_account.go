@@ -1,7 +1,9 @@
 package delivery
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -19,12 +21,14 @@ type oauthGoogleCfg struct {
 	clientID     string
 	clientSecret string
 	redirectURL  string
+	scopes       []string
 }
 
 var googleConfig = &oauthGoogleCfg{
 	clientID:     clientID,
 	clientSecret: clientSecret,
-	redirectURL:  "http://localhost/sign-in/google/callback",
+	scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+	redirectURL:  "http://localhost:8080/sign-in/google/callback",
 }
 
 func (h *Handler) googleSignIn(w http.ResponseWriter, r *http.Request) {
@@ -36,10 +40,16 @@ func (h *Handler) googleSignIn(w http.ResponseWriter, r *http.Request) {
 	parameters := url.Values{}
 	parameters.Add("client_id", googleConfig.clientID)
 	parameters.Add("redirect_uri", googleConfig.redirectURL)
+	parameters.Add("scope", strings.Join(googleConfig.scopes, " "))
 	parameters.Add("response_type", "code")
 	URL.RawQuery = parameters.Encode()
 	url := URL.String()
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+}
+
+type Token struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type,omitempty"`
 }
 
 func (h *Handler) callbackFromGoogle(w http.ResponseWriter, r *http.Request) {
@@ -69,6 +79,29 @@ func (h *Handler) callbackFromGoogle(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			// do smth
 		}
-		fmt.Println(res.Body)
+		body, err := io.ReadAll(res.Body)
+		defer res.Body.Close()
+
+		if err != nil {
+			log.Println(err)
+			// do smth
+		}
+		var token *Token
+		json.Unmarshal(body, &token) // decoder
+		fmt.Println(token)
+
+		resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + url.QueryEscape(token.AccessToken))
+		if err != nil {
+			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			return
+		}
+		body1, err := io.ReadAll(resp.Body)
+		defer res.Body.Close()
+
+		if err != nil {
+			log.Println(err)
+			// do smth
+		}
+		fmt.Println(string(body1))
 	}
 }
