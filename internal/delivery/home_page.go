@@ -27,6 +27,10 @@ func (h *Handler) homePage(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			category := r.URL.Query().Get("category")
+			if category == "" {
+				h.errorPage(w, http.StatusNotFound, nil)
+				return
+			}
 			var err error
 			posts, err = h.services.Post.PostsByCategory(user.ID, category)
 			if err != nil {

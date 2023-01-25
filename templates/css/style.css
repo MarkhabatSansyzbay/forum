@@ -17,6 +17,13 @@
     width: 100%;
 }
 
+.img-fluid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 .img-fluid img {
     margin-top: 10px;
     max-width: 100%;
