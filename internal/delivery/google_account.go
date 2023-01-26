@@ -27,7 +27,7 @@ type oauthGoogleCfg struct {
 var googleConfig = &oauthGoogleCfg{
 	clientID:     clientID,
 	clientSecret: clientSecret,
-	scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+	scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 	redirectURL:  "http://localhost:8080/sign-in/google/callback",
 }
 
@@ -62,46 +62,56 @@ func (h *Handler) callbackFromGoogle(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("User has denied Permission.."))
 		}
 	} else {
-		v := url.Values{
-			"grant_type":    {"authorization_code"},
-			"code":          {code},
-			"redirect_uri":  {googleConfig.redirectURL},
-			"client_id":     {googleConfig.clientID},
-			"client_secret": {googleConfig.clientSecret},
+		accessToken, err := googleAccessToken(googleConfig, code)
+		if err != nil {
+			h.errorPage(w, http.StatusInternalServerError, err)
+			return
 		}
 
-		req, err := http.NewRequest("POST", tokenURL, strings.NewReader(v.Encode()))
-		if err != nil {
-			// do smth
-		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			// do smth
-		}
-		body, err := io.ReadAll(res.Body)
-		defer res.Body.Close()
-
-		if err != nil {
-			log.Println(err)
-			// do smth
-		}
-		var token *Token
-		json.Unmarshal(body, &token) // decoder
-		fmt.Println(token)
-
-		resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + url.QueryEscape(token.AccessToken))
+		resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + url.QueryEscape(accessToken))
 		if err != nil {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 		body1, err := io.ReadAll(resp.Body)
-		defer res.Body.Close()
-
 		if err != nil {
 			log.Println(err)
 			// do smth
 		}
+
 		fmt.Println(string(body1))
 	}
+}
+
+// func googleUserInfo() ()
+
+func googleAccessToken(cfg *oauthGoogleCfg, code string) (string, error) {
+	v := url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"redirect_uri":  {cfg.redirectURL},
+		"client_id":     {cfg.clientID},
+		"client_secret": {cfg.clientSecret},
+	}
+
+	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(v.Encode()))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	var token Token
+	if err := json.NewDecoder(resp.Body).Decode(&token); err != nil {
+		return "", err
+	}
+
+	return token.AccessToken, nil
 }
