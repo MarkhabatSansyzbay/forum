@@ -2,12 +2,13 @@ package delivery
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"forum/internal/models"
 )
 
 const (
@@ -17,73 +18,111 @@ const (
 	clientSecret = "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"
 )
 
-type oauthGoogleCfg struct {
-	clientID     string
-	clientSecret string
-	redirectURL  string
-	scopes       []string
-}
+var (
+	googleSignInConfig = &oauthGoogleCfg{
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		redirectURL:  "http://localhost:8080/sign-in/google/callback",
+	}
+	googleSignUpConfig = &oauthGoogleCfg{
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		redirectURL:  "http://localhost:8080/sign-up/google/callback",
+	}
+)
 
-var googleConfig = &oauthGoogleCfg{
-	clientID:     clientID,
-	clientSecret: clientSecret,
-	scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
-	redirectURL:  "http://localhost:8080/sign-in/google/callback",
-}
-
-func (h *Handler) googleSignIn(w http.ResponseWriter, r *http.Request) {
+func requestToGoogle(w http.ResponseWriter, r *http.Request, cfg oauthGoogleCfg) {
 	URL, err := url.Parse(authURL)
 	if err != nil {
 		log.Printf("Parse: %s", err)
 	}
 
 	parameters := url.Values{}
-	parameters.Add("client_id", googleConfig.clientID)
-	parameters.Add("redirect_uri", googleConfig.redirectURL)
-	parameters.Add("scope", strings.Join(googleConfig.scopes, " "))
+	parameters.Add("client_id", cfg.clientID)
+	parameters.Add("redirect_uri", cfg.redirectURL)
+	parameters.Add("scope", strings.Join(cfg.scopes, " "))
 	parameters.Add("response_type", "code")
 	URL.RawQuery = parameters.Encode()
 	url := URL.String()
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-type Token struct {
-	AccessToken string `json:"access_token"`
-	TokenType   string `json:"token_type,omitempty"`
+func (h *Handler) googleSignIn(w http.ResponseWriter, r *http.Request) {
+	requestToGoogle(w, r, *googleSignInConfig)
 }
 
-func (h *Handler) callbackFromGoogle(w http.ResponseWriter, r *http.Request) {
-	code := r.FormValue("code")
-	if code == "" {
-		// ?
-		w.Write([]byte("Code Not Found to provide AccessToken..\n"))
-		reason := r.FormValue("error_reason")
-		if reason == "user_denied" {
-			w.Write([]byte("User has denied Permission.."))
-		}
-	} else {
-		accessToken, err := googleAccessToken(googleConfig, code)
-		if err != nil {
-			h.errorPage(w, http.StatusInternalServerError, err)
-			return
-		}
+func (h *Handler) googleSignUp(w http.ResponseWriter, r *http.Request) {
+	requestToGoogle(w, r, *googleSignUpConfig)
+}
 
-		resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + url.QueryEscape(accessToken))
-		if err != nil {
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-			return
-		}
-		body1, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Println(err)
-			// do smth
-		}
-
-		fmt.Println(string(body1))
+func (h *Handler) signInCallbackFromGoogle(w http.ResponseWriter, r *http.Request) {
+	user, err := userFromGoogleInfo(r, googleSignInConfig)
+	if err != nil {
+		h.errorPage(w, http.StatusUnauthorized, err)
+		return
 	}
+	h.setSession(w, user, true)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-// func googleUserInfo() ()
+func (h *Handler) signUpCallbackFromGoogle(w http.ResponseWriter, r *http.Request) {
+	user, err := userFromGoogleInfo(r, googleSignUpConfig)
+	if err != nil {
+		h.errorPage(w, http.StatusUnauthorized, err)
+		return
+	}
+	if err := h.services.Authorization.CreateUser(*user); err != nil {
+		log.Println(err)
+		h.errorPage(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	h.setSession(w, user, true)
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func userFromGoogleInfo(r *http.Request, cfg *oauthGoogleCfg) (*models.User, error) {
+	code := r.FormValue("code")
+	accessToken, err := googleAccessToken(cfg, code)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(
+		"GET",
+		"https://www.googleapis.com/oauth2/v2/userinfo?access_token="+url.QueryEscape(accessToken),
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var u *UserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
+		return nil, err
+	}
+
+	if u.Email == "" {
+		return nil, errors.New("email is empty")
+	}
+
+	user := &models.User{
+		Username: strings.Split(u.Email, "@")[0],
+		Email:    u.Email,
+	}
+
+	return user, nil
+}
 
 func googleAccessToken(cfg *oauthGoogleCfg, code string) (string, error) {
 	v := url.Values{

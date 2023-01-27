@@ -28,7 +28,9 @@ func (h *Handler) InitRoutes() *http.ServeMux {
 	mux.HandleFunc("/sign-out", h.logOut)
 
 	mux.HandleFunc("/sign-in/google", h.googleSignIn)
-	mux.HandleFunc("/sign-in/google/callback", h.callbackFromGoogle)
+	mux.HandleFunc("/sign-up/google", h.googleSignUp)
+	mux.HandleFunc("/sign-in/google/callback", h.signInCallbackFromGoogle)
+	mux.HandleFunc("/sign-up/google/callback", h.signUpCallbackFromGoogle)
 
 	mux.HandleFunc("/posts/", h.middleware(h.postPage))
 	mux.HandleFunc("/posts/create", h.middleware(h.createPost))

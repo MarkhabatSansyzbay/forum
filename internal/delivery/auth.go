@@ -83,23 +83,11 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		session, err := h.services.Authorization.SetSession(username[0], password[0])
-		if err != nil {
-			if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
-				h.errorPage(w, http.StatusUnauthorized, err)
-				return
-			}
-			h.errorPage(w, http.StatusInternalServerError, err)
-			return
+		user := &models.User{
+			Username: username[0],
+			Password: password[0],
 		}
-
-		cookie := &http.Cookie{
-			Name:    "session_token",
-			Value:   session.Token,
-			Path:    "/",
-			Expires: session.ExpirationDate,
-		}
-		http.SetCookie(w, cookie)
+		h.setSession(w, user, false)
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	default:
