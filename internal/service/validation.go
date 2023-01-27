@@ -2,9 +2,10 @@ package service
 
 import (
 	"errors"
-	"forum/internal/models"
 	"regexp"
 	"strings"
+
+	"forum/internal/models"
 )
 
 var (

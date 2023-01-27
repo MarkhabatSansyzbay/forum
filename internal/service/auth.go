@@ -16,7 +16,7 @@ import (
 
 type Authorization interface {
 	CreateUser(user models.User) error
-	SetSession(username, password string) (models.Session, error)
+	SetSession(username, password string, isOauth2 bool) (models.Session, error)
 	DeleteSession(token string) error
 	UserByToken(token string) (models.User, error)
 }
@@ -69,8 +69,8 @@ func (s *AuthService) CreateUser(user models.User) error {
 	return s.repo.CreateUser(user)
 }
 
-func (s *AuthService) SetSession(username, password string) (models.Session, error) {
-	user, err := s.checkUser(username, password)
+func (s *AuthService) SetSession(username, password string, isOauth2 bool) (models.Session, error) {
+	user, err := s.checkUser(username, password, isOauth2)
 	if err != nil {
 		return models.Session{}, err
 	}
@@ -107,14 +107,16 @@ func (s *AuthService) UserByToken(token string) (models.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) checkUser(username, password string) (models.User, error) {
+func (s *AuthService) checkUser(username, password string, isOauth2 bool) (models.User, error) {
 	user, err := s.repo.GetUser(username, "")
 	if err != nil {
 		return user, ErrNoUser
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return user, ErrWrongPassword
+	if !isOauth2 {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+			return user, ErrWrongPassword
+		}
 	}
 
 	return user, nil
