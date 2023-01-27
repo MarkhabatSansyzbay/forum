@@ -15,7 +15,7 @@ import (
 )
 
 type Authorization interface {
-	CreateUser(user models.User) error
+	CreateUser(user models.User, isOauth2 bool) error
 	SetSession(username, password string, isOauth2 bool) (models.Session, error)
 	DeleteSession(token string) error
 	UserByToken(token string) (models.User, error)
@@ -40,7 +40,7 @@ func NewAuthService(repo repository.Authorization) *AuthService {
 	}
 }
 
-func (s *AuthService) CreateUser(user models.User) error {
+func (s *AuthService) CreateUser(user models.User, isOauth2 bool) error {
 	if _, err := s.repo.GetUser("", user.Email); err != sql.ErrNoRows {
 		if err == nil {
 			return ErrEmailTaken
@@ -55,16 +55,18 @@ func (s *AuthService) CreateUser(user models.User) error {
 		return err
 	}
 
-	if err := checkUserInfo(user); err != nil {
-		return err
-	}
+	if !isOauth2 {
+		if err := checkUserInfo(user); err != nil {
+			return err
+		}
 
-	password, err := s.generatePasswordHash(user.Password)
-	if err != nil {
-		return err
-	}
+		password, err := s.generatePasswordHash(user.Password)
+		if err != nil {
+			return err
+		}
 
-	user.Password = password
+		user.Password = password
+	}
 
 	return s.repo.CreateUser(user)
 }
