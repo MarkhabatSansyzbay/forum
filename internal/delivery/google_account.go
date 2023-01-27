@@ -74,7 +74,7 @@ func (h *Handler) signUpCallbackFromGoogle(w http.ResponseWriter, r *http.Reques
 		h.errorPage(w, http.StatusUnauthorized, err)
 		return
 	}
-	if err := h.services.Authorization.CreateUser(*user); err != nil {
+	if err := h.services.Authorization.CreateUser(*user, true); err != nil {
 		log.Println(err)
 		h.errorPage(w, http.StatusUnauthorized, err)
 		return
