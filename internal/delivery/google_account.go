@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"forum/internal/models"
+	"forum/internal/service"
 )
 
 const (
@@ -19,13 +20,13 @@ const (
 )
 
 var (
-	googleSignInConfig = &oauthGoogleCfg{
+	googleSignInConfig = &oauthConfig{
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
 		redirectURL:  "http://localhost:8080/sign-in/google/callback",
 	}
-	googleSignUpConfig = &oauthGoogleCfg{
+	googleSignUpConfig = &oauthConfig{
 		clientID:     clientID,
 		clientSecret: clientSecret,
 		scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
@@ -33,7 +34,9 @@ var (
 	}
 )
 
-func requestToGoogle(w http.ResponseWriter, r *http.Request, cfg oauthGoogleCfg) {
+// does it have to be different : redirectURL
+
+func requestToGoogle(w http.ResponseWriter, r *http.Request, cfg *oauthConfig) {
 	URL, err := url.Parse(authURL)
 	if err != nil {
 		log.Printf("Parse: %s", err)
@@ -50,11 +53,11 @@ func requestToGoogle(w http.ResponseWriter, r *http.Request, cfg oauthGoogleCfg)
 }
 
 func (h *Handler) googleSignIn(w http.ResponseWriter, r *http.Request) {
-	requestToGoogle(w, r, *googleSignInConfig)
+	requestToGoogle(w, r, googleSignInConfig)
 }
 
 func (h *Handler) googleSignUp(w http.ResponseWriter, r *http.Request) {
-	requestToGoogle(w, r, *googleSignUpConfig)
+	requestToGoogle(w, r, googleSignUpConfig)
 }
 
 func (h *Handler) signInCallbackFromGoogle(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +66,13 @@ func (h *Handler) signInCallbackFromGoogle(w http.ResponseWriter, r *http.Reques
 		h.errorPage(w, http.StatusUnauthorized, err)
 		return
 	}
-	h.setSession(w, user, true)
+	if err := h.setSession(w, user, true); err != nil {
+		if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
+			h.errorPage(w, http.StatusUnauthorized, err)
+			return
+		}
+		h.errorPage(w, http.StatusInternalServerError, err)
+	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
@@ -75,18 +84,25 @@ func (h *Handler) signUpCallbackFromGoogle(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := h.services.Authorization.CreateUser(*user, true); err != nil {
-		log.Println(err)
+		// username taken???
 		h.errorPage(w, http.StatusUnauthorized, err)
 		return
 	}
 
-	h.setSession(w, user, true)
+	if err := h.setSession(w, user, true); err != nil {
+		if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
+			h.errorPage(w, http.StatusUnauthorized, err)
+			return
+		}
+		h.errorPage(w, http.StatusInternalServerError, err)
+	}
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func userFromGoogleInfo(r *http.Request, cfg *oauthGoogleCfg) (*models.User, error) {
-	code := r.FormValue("code")
+func userFromGoogleInfo(r *http.Request, cfg *oauthConfig) (*models.User, error) {
+	code := r.URL.Query().Get("code")
+
 	accessToken, err := googleAccessToken(cfg, code)
 	if err != nil {
 		return nil, err
@@ -107,7 +123,7 @@ func userFromGoogleInfo(r *http.Request, cfg *oauthGoogleCfg) (*models.User, err
 	}
 	defer resp.Body.Close()
 
-	var u *UserInfo
+	var u *GoogleUserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
 		return nil, err
 	}
@@ -124,7 +140,7 @@ func userFromGoogleInfo(r *http.Request, cfg *oauthGoogleCfg) (*models.User, err
 	return user, nil
 }
 
-func googleAccessToken(cfg *oauthGoogleCfg, code string) (string, error) {
+func googleAccessToken(cfg *oauthConfig, code string) (string, error) {
 	v := url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code},
