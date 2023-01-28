@@ -32,6 +32,11 @@ func (h *Handler) InitRoutes() *http.ServeMux {
 	mux.HandleFunc("/sign-in/google/callback", h.signInCallbackFromGoogle)
 	mux.HandleFunc("/sign-up/google/callback", h.signUpCallbackFromGoogle)
 
+	mux.HandleFunc("/sign-in/github", h.githubSignIn)
+	mux.HandleFunc("/sign-up/github", h.githubSignUp)
+	mux.HandleFunc("/github/callback/sign-in", h.signInCallbackGithub)
+	mux.HandleFunc("/github/callback/sign-up", h.signUpCallbackGithub)
+
 	mux.HandleFunc("/posts/", h.middleware(h.postPage))
 	mux.HandleFunc("/posts/create", h.middleware(h.createPost))
 	mux.HandleFunc("/posts/react/", h.middleware(h.reactToPost))

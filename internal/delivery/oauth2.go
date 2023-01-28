@@ -1,6 +1,6 @@
 package delivery
 
-type oauthGoogleCfg struct {
+type oauthConfig struct {
 	clientID     string
 	clientSecret string
 	redirectURL  string
@@ -10,8 +10,14 @@ type oauthGoogleCfg struct {
 type Token struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type,omitempty"`
+	Scope       string `json:"scope"`
 }
 
-type UserInfo struct {
+type GoogleUserInfo struct {
 	Email string `json:"email"`
+}
+
+type GithubUserInfo struct {
+	Username string `json:"login"`
+	Email    string `json:"email"`
 }
