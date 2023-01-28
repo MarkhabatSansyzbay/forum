@@ -87,7 +87,14 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 			Username: username[0],
 			Password: password[0],
 		}
-		h.setSession(w, user, false)
+
+		if err := h.setSession(w, user, false); err != nil {
+			if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
+				h.errorPage(w, http.StatusUnauthorized, err)
+				return
+			}
+			h.errorPage(w, http.StatusInternalServerError, err)
+		}
 
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	default:
