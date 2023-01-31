@@ -48,10 +48,9 @@ func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
 				errors.Is(err, service.ErrEmailTaken) {
 				h.errorPage(w, http.StatusBadRequest, err)
 				return
-			} else {
-				h.errorPage(w, http.StatusInternalServerError, err)
-				return
 			}
+			h.errorPage(w, http.StatusInternalServerError, err)
+			return
 		}
 		http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 	default:

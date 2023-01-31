@@ -70,7 +70,7 @@ func (h *Handler) homePage(w http.ResponseWriter, r *http.Request) {
 
 		id, err := strconv.Atoi(postID[0])
 		if err != nil {
-			h.errorPage(w, http.StatusInternalServerError, nil)
+			h.errorPage(w, http.StatusBadRequest, nil)
 			return
 		}
 

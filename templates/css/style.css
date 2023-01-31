@@ -5,6 +5,15 @@
     flex-direction: column;
 }
 
+a {
+    color: black;
+    font-weight: bold;
+}
+
+a:link {
+    text-decoration: none;    
+}
+
 .posts {
     margin: 20px 0;
     display: flex;
@@ -34,6 +43,10 @@
     width: 400px;
     display: flex;
     flex-direction: column;
+}
+
+.sign-form a {
+    font-weight: normal;
 }
 
 .h2 {
@@ -96,15 +109,6 @@ nav, .btn {
 .new-comment {
     margin: 10px;
     display: flex;
-}
-
-a {
-    color: black;
-    font-weight: bold;
-}
-
-a:link {
-    text-decoration: none;    
 }
 
 .categories {
@@ -183,4 +187,9 @@ a:link {
     border: 0px;
     background-color: white;
     padding-left: 15px;
+}
+
+.auth {
+    margin-top: 15px;
+    text-align: center;
 }

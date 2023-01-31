@@ -36,7 +36,7 @@ func (h *Handler) reactComment(w http.ResponseWriter, r *http.Request) {
 
 	commentID, err := strconv.Atoi(commentIDVal[0])
 	if err != nil {
-		h.errorPage(w, http.StatusInternalServerError, err)
+		h.errorPage(w, http.StatusBadRequest, err)
 		return
 	}
 

@@ -89,8 +89,11 @@ func (h *Handler) signUpCallbackGithub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.services.Authorization.CreateUser(*user, true); err != nil {
-		// username taken???
-		h.errorPage(w, http.StatusUnauthorized, err)
+		if errors.Is(err, service.ErrEmailTaken) {
+			h.errorPage(w, http.StatusBadRequest, err)
+			return
+		}
+		h.errorPage(w, http.StatusInternalServerError, err)
 		return
 	}
 

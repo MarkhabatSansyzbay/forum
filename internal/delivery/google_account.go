@@ -34,8 +34,6 @@ var (
 	}
 )
 
-// does it have to be different : redirectURL
-
 func requestToGoogle(w http.ResponseWriter, r *http.Request, cfg *oauthConfig) {
 	URL, err := url.Parse(authURL)
 	if err != nil {
@@ -84,7 +82,6 @@ func (h *Handler) signUpCallbackFromGoogle(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := h.services.Authorization.CreateUser(*user, true); err != nil {
-		// username taken???
 		h.errorPage(w, http.StatusUnauthorized, err)
 		return
 	}

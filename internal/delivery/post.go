@@ -108,11 +108,6 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case http.MethodPost:
-		// if err := r.ParseForm(); err != nil {
-		// 	h.errorPage(w, http.StatusInternalServerError, err)
-		// 	return
-		// }
-
 		if err := r.ParseMultipartForm(5 << 20); err != nil {
 			h.errorPage(w, http.StatusInternalServerError, err)
 			return

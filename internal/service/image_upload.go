@@ -14,7 +14,7 @@ import (
 
 var (
 	ErrImgSize   = errors.New("image file size is too big")
-	ErrImgFormat = errors.New("your image format is not provided") // provided image formats are JPEG, PNG, SVG and GIF
+	ErrImgFormat = errors.New("your image format is not provided") // provided image formats are JPEG, PNG and GIF
 )
 
 const imgMaxSize = 5 << 20
@@ -51,7 +51,7 @@ func SaveImages(images []*multipart.FileHeader) ([]template.URL, error) {
 		}
 
 		filetype := http.DetectContentType(content)
-		if filetype != "image/jpeg" && filetype != "image/png" && filetype != "image/gif" && filetype != "image/svg" {
+		if filetype != "image/jpeg" && filetype != "image/png" && filetype != "image/gif" {
 			return nil, ErrImgFormat
 		}
 
@@ -72,6 +72,8 @@ func retrieveBase64(imgBytes []byte, mimeType string) (string, error) {
 		base64Encoding += "data:image/jpeg;base64,"
 	case "image/png":
 		base64Encoding += "data:image/png;base64,"
+	case "image/gif":
+		base64Encoding += "data:image/gif;base64,"
 	}
 
 	base64Encoding += toBase64(imgBytes)
