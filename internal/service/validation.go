@@ -19,10 +19,8 @@ func checkUserInfo(user models.User) error {
 		return ErrInvalidEmail
 	}
 
-	for _, w := range user.Username {
-		if w < 32 || w > 126 {
-			return ErrInvalidUsername
-		}
+	if !checkUsername(user.Username) {
+		return ErrInvalidUsername
 	}
 
 	if !checkPassword(user.Password) {
@@ -30,6 +28,16 @@ func checkUserInfo(user models.User) error {
 	}
 
 	return nil
+}
+
+func checkUsername(username string) bool {
+	for _, w := range username {
+		if w < 32 || w > 126 {
+			return false
+		}
+	}
+
+	return true
 }
 
 func checkPassword(password string) bool {

@@ -6,8 +6,8 @@ import (
 	"forum/internal/models"
 )
 
-func (h *Handler) setSession(w http.ResponseWriter, user *models.User, isOauth2 bool) error {
-	session, err := h.services.Authorization.SetSession(user.Username, user.Password, isOauth2)
+func (h *Handler) setSession(w http.ResponseWriter, user *models.User) error {
+	session, err := h.services.Authorization.SetSession(user)
 	if err != nil {
 		return err
 	}

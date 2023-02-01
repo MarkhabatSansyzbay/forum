@@ -54,6 +54,8 @@
                 {{template "create-post" .}}
             {{else if eq .Template "post-page"}}
                 {{template "post-page" .}}
+            {{else if eq .Template "oauth2"}}
+                {{template "oauth2" .}}
             {{end}}
         </div>
     </main>

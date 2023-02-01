@@ -59,12 +59,14 @@ func (h *Handler) googleSignUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) signInCallbackFromGoogle(w http.ResponseWriter, r *http.Request) {
-	user, err := userFromGoogleInfo(r, googleSignInConfig)
+	code := r.URL.Query().Get("code")
+
+	user, err := userFromGoogleInfo(code, googleSignInConfig)
 	if err != nil {
 		h.errorPage(w, http.StatusUnauthorized, err)
 		return
 	}
-	if err := h.setSession(w, user, true); err != nil {
+	if err := h.setSession(w, user); err != nil {
 		if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
 			h.errorPage(w, http.StatusUnauthorized, err)
 			return
@@ -76,34 +78,56 @@ func (h *Handler) signInCallbackFromGoogle(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) signUpCallbackFromGoogle(w http.ResponseWriter, r *http.Request) {
-	user, err := userFromGoogleInfo(r, googleSignUpConfig)
-	if err != nil {
-		h.errorPage(w, http.StatusUnauthorized, err)
-		return
-	}
-	if err := h.services.Authorization.CreateUser(*user, true); err != nil {
-		if errors.Is(err, service.ErrEmailTaken) || errors.Is(err, service.ErrUsernameTaken) {
-			h.errorPage(w, http.StatusBadRequest, err)
+	switch r.Method {
+	case http.MethodGet:
+		data := models.TemplateData{
+			Template: "oauth2",
+		}
+		if err := h.tmpl.ExecuteTemplate(w, "base", data); err != nil {
+			h.errorPage(w, http.StatusInternalServerError, err)
 			return
 		}
-		h.errorPage(w, http.StatusInternalServerError, err)
-		return
-	}
+	case http.MethodPost:
+		code := r.URL.Query().Get("code")
 
-	if err := h.setSession(w, user, true); err != nil {
-		if errors.Is(err, service.ErrNoUser) {
+		user, err := userFromGoogleInfo(code, googleSignUpConfig)
+		if err != nil {
 			h.errorPage(w, http.StatusUnauthorized, err)
 			return
 		}
-		h.errorPage(w, http.StatusInternalServerError, err)
-	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+		if err := r.ParseForm(); err != nil {
+			h.errorPage(w, http.StatusInternalServerError, err)
+			return
+		}
+		username := r.Form["username"]
+
+		user.Username = username[0]
+
+		if err := h.services.Authorization.CreateUser(*user); err != nil {
+			if errors.Is(err, service.ErrEmailTaken) || errors.Is(err, service.ErrUsernameTaken) {
+				h.errorPage(w, http.StatusBadRequest, err)
+				return
+			}
+			h.errorPage(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if err := h.setSession(w, user); err != nil {
+			if errors.Is(err, service.ErrNoUser) {
+				h.errorPage(w, http.StatusUnauthorized, err)
+				return
+			}
+			h.errorPage(w, http.StatusInternalServerError, err)
+		}
+
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	default:
+		h.errorPage(w, http.StatusMethodNotAllowed, nil)
+	}
 }
 
-func userFromGoogleInfo(r *http.Request, cfg *oauthConfig) (*models.User, error) {
-	code := r.URL.Query().Get("code")
-
+func userFromGoogleInfo(code string, cfg *oauthConfig) (*models.User, error) {
 	accessToken, err := googleAccessToken(cfg, code)
 	if err != nil {
 		return nil, err
@@ -124,7 +148,7 @@ func userFromGoogleInfo(r *http.Request, cfg *oauthConfig) (*models.User, error)
 	}
 	defer resp.Body.Close()
 
-	var u *GoogleUserInfo
+	var u *UserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
 		return nil, err
 	}
@@ -134,7 +158,6 @@ func userFromGoogleInfo(r *http.Request, cfg *oauthConfig) (*models.User, error)
 	}
 
 	user := &models.User{
-		Username:   strings.Split(u.Email, "@")[0],
 		Email:      u.Email,
 		AuthMethod: "google",
 	}

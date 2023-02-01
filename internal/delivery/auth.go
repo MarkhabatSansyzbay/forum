@@ -42,7 +42,7 @@ func (h *Handler) signUp(w http.ResponseWriter, r *http.Request) {
 			ConfirmPassword: confirm[0],
 		}
 
-		if err := h.services.Authorization.CreateUser(user, false); err != nil {
+		if err := h.services.Authorization.CreateUser(user); err != nil {
 			if errors.Is(err, service.ErrInvalidEmail) || errors.Is(err, service.ErrInvalidPassword) ||
 				errors.Is(err, service.ErrInvalidUsername) || errors.Is(err, service.ErrUsernameTaken) ||
 				errors.Is(err, service.ErrEmailTaken) {
@@ -87,7 +87,7 @@ func (h *Handler) signIn(w http.ResponseWriter, r *http.Request) {
 			Password: password[0],
 		}
 
-		if err := h.setSession(w, user, false); err != nil {
+		if err := h.setSession(w, user); err != nil {
 			if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
 				h.errorPage(w, http.StatusUnauthorized, err)
 				return

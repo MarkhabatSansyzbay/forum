@@ -16,8 +16,8 @@ import (
 )
 
 type Authorization interface {
-	CreateUser(user models.User, isOauth2 bool) error
-	SetSession(username, password string, isOauth2 bool) (models.Session, error)
+	CreateUser(user models.User) error
+	SetSession(user *models.User) (models.Session, error)
 	DeleteSession(token string) error
 	UserByToken(token string) (models.User, error)
 }
@@ -41,7 +41,7 @@ func NewAuthService(repo repository.Authorization) *AuthService {
 	}
 }
 
-func (s *AuthService) CreateUser(newUser models.User, isOauth2 bool) error {
+func (s *AuthService) CreateUser(newUser models.User) error {
 	if _, err := s.repo.GetUser(newUser.Username); err != sql.ErrNoRows {
 		if err == nil {
 			return ErrUsernameTaken
@@ -49,17 +49,20 @@ func (s *AuthService) CreateUser(newUser models.User, isOauth2 bool) error {
 		return err
 	}
 
-	if !isOauth2 {
+	if newUser.AuthMethod == "" {
 		if err := checkUserInfo(newUser); err != nil {
 			return err
 		}
-
 		password, err := s.generatePasswordHash(newUser.Password)
 		if err != nil {
 			return err
 		}
 
 		newUser.Password = password
+	} else {
+		if !checkUsername(newUser.Username) {
+			return ErrInvalidUsername
+		}
 	}
 
 	if err := s.repo.CreateUser(newUser); err != nil {
@@ -72,13 +75,13 @@ func (s *AuthService) CreateUser(newUser models.User, isOauth2 bool) error {
 	return nil
 }
 
-func (s *AuthService) SetSession(username, password string, isOauth2 bool) (models.Session, error) {
-	user, err := s.checkUser(username, password, isOauth2)
+func (s *AuthService) SetSession(user *models.User) (models.Session, error) {
+	u, err := s.checkUser(user)
 	if err != nil {
 		return models.Session{}, err
 	}
 
-	s.repo.DeleteSessionByUserId(user.ID)
+	s.repo.DeleteSessionByUserId(u.ID)
 
 	token, err := s.generateToken()
 	if err != nil {
@@ -86,7 +89,7 @@ func (s *AuthService) SetSession(username, password string, isOauth2 bool) (mode
 	}
 
 	session := models.Session{
-		UserID:         user.ID,
+		UserID:         u.ID,
 		Token:          token,
 		ExpirationDate: time.Now().Add(sessionTime),
 	}
@@ -110,16 +113,23 @@ func (s *AuthService) UserByToken(token string) (models.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) checkUser(username, password string, isOauth2 bool) (models.User, error) {
-	user, err := s.repo.GetUser(username)
-	if err != nil {
-		return user, ErrNoUser
-	}
+func (s *AuthService) checkUser(u *models.User) (models.User, error) {
+	if u.AuthMethod == "" {
+		user, err := s.repo.GetUser(u.Username)
+		if err != nil {
+			return user, ErrNoUser
+		}
 
-	if !isOauth2 {
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(u.Password)); err != nil {
 			return user, ErrWrongPassword
 		}
+
+		return user, nil
+	}
+
+	user, err := s.repo.GetUser(u.Email)
+	if err != nil {
+		return user, ErrNoUser
 	}
 
 	return user, nil

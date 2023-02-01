@@ -8,7 +8,7 @@ import (
 
 type Authorization interface {
 	CreateUser(user models.User) error
-	GetUser(username string) (models.User, error)
+	GetUser(userData string) (models.User, error)
 	CreateSession(user models.Session) error
 	GetSession(token string) (models.Session, error)
 	DeleteSession(token string) error
@@ -38,14 +38,14 @@ func (s *AuthSqlite) CreateUser(user models.User) error {
 	return nil
 }
 
-func (s *AuthSqlite) GetUser(username string) (models.User, error) {
+func (s *AuthSqlite) GetUser(userData string) (models.User, error) {
 	query := `
-		SELECT ID, Username, Email, Password, Method FROM USERS WHERE Username=$1;
+		SELECT ID, Username, Email, Password, Method FROM USERS WHERE Username=$1 OR Email=$2;
 	`
 
 	var user models.User
 
-	if err := s.db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.AuthMethod); err != nil {
+	if err := s.db.QueryRow(query, userData, userData).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.AuthMethod); err != nil {
 		return user, err
 	}
 

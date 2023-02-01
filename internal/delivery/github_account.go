@@ -68,7 +68,7 @@ func (h *Handler) signInCallbackGithub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.setSession(w, user, true); err != nil {
+	if err := h.setSession(w, user); err != nil {
 		if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
 			h.errorPage(w, http.StatusUnauthorized, err)
 			return
@@ -80,32 +80,53 @@ func (h *Handler) signInCallbackGithub(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) signUpCallbackGithub(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
-
-	user, err := h.userFromGithubInfo(code, ghSignUpCfg)
-	if err != nil {
-		h.errorPage(w, http.StatusUnauthorized, err)
-		return
-	}
-
-	if err := h.services.Authorization.CreateUser(*user, true); err != nil {
-		if errors.Is(err, service.ErrEmailTaken) || errors.Is(err, service.ErrUsernameTaken) {
-			h.errorPage(w, http.StatusBadRequest, err)
+	switch r.Method {
+	case http.MethodGet:
+		data := models.TemplateData{
+			Template: "oauth2",
+		}
+		if err := h.tmpl.ExecuteTemplate(w, "base", data); err != nil {
+			h.errorPage(w, http.StatusInternalServerError, err)
 			return
 		}
-		h.errorPage(w, http.StatusInternalServerError, err)
-		return
-	}
+	case http.MethodPost:
+		code := r.URL.Query().Get("code")
 
-	if err := h.setSession(w, user, true); err != nil {
-		if errors.Is(err, service.ErrNoUser) {
+		user, err := h.userFromGithubInfo(code, ghSignUpCfg)
+		if err != nil {
 			h.errorPage(w, http.StatusUnauthorized, err)
 			return
 		}
-		h.errorPage(w, http.StatusInternalServerError, err)
-	}
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+		if err := r.ParseForm(); err != nil {
+			h.errorPage(w, http.StatusInternalServerError, err)
+			return
+		}
+		username := r.Form["username"]
+
+		user.Username = username[0]
+
+		if err := h.services.Authorization.CreateUser(*user); err != nil {
+			if errors.Is(err, service.ErrEmailTaken) || errors.Is(err, service.ErrUsernameTaken) {
+				h.errorPage(w, http.StatusBadRequest, err)
+				return
+			}
+			h.errorPage(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if err := h.setSession(w, user); err != nil {
+			if errors.Is(err, service.ErrNoUser) {
+				h.errorPage(w, http.StatusUnauthorized, err)
+				return
+			}
+			h.errorPage(w, http.StatusInternalServerError, err)
+		}
+
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	default:
+		h.errorPage(w, http.StatusMethodNotAllowed, nil)
+	}
 }
 
 func (h *Handler) userFromGithubInfo(code string, cfg *oauthConfig) (*models.User, error) {
@@ -116,71 +137,38 @@ func (h *Handler) userFromGithubInfo(code string, cfg *oauthConfig) (*models.Use
 
 	req, err := http.NewRequest(
 		"GET",
-		"https://api.github.com/user",
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	authHeaderValue := fmt.Sprintf("token %s", accessToken)
-	req.Header.Set("Authorization", authHeaderValue)
-	req.Header.Set("accept", "application/vnd.github.v3+json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var u *GithubUserInfo
-	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
-		return nil, err
-	}
-
-	email, err := emailFromGithub(code, accessToken, cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	user := &models.User{
-		Username:   u.Username,
-		Email:      email,
-		AuthMethod: "github",
-	}
-
-	return user, nil
-}
-
-func emailFromGithub(code, accessToken string, cfg *oauthConfig) (string, error) {
-	req, err := http.NewRequest(
-		"GET",
 		"https://api.github.com/user/emails",
 		nil,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+
 	authHeaderValue := fmt.Sprintf("token %s", accessToken)
 	req.Header.Set("Authorization", authHeaderValue)
 	req.Header.Set("accept", "application/vnd.github.v3+json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var data []*GithubUserInfo
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return "", err
+	var u []*UserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
+		return nil, err
 	}
 
-	if data[0].Email == "" {
-		return "", errors.New("email is empty")
+	if u[0].Email == "" {
+		return nil, errors.New("email is empty")
 	}
 
-	return data[0].Email, nil
+	user := &models.User{
+		Email:      u[0].Email,
+		AuthMethod: "github",
+	}
+
+	return user, nil
 }
 
 func githubAccessToken(cfg *oauthConfig, code string) (string, error) {

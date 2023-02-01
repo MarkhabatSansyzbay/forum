@@ -13,11 +13,6 @@ type Token struct {
 	Scope       string `json:"scope"`
 }
 
-type GoogleUserInfo struct {
+type UserInfo struct {
 	Email string `json:"email"`
-}
-
-type GithubUserInfo struct {
-	Username string `json:"login"`
-	Email    string `json:"email"`
 }
