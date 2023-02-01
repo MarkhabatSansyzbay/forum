@@ -82,12 +82,16 @@ func (h *Handler) signUpCallbackFromGoogle(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := h.services.Authorization.CreateUser(*user, true); err != nil {
-		h.errorPage(w, http.StatusUnauthorized, err)
+		if errors.Is(err, service.ErrEmailTaken) || errors.Is(err, service.ErrUsernameTaken) {
+			h.errorPage(w, http.StatusBadRequest, err)
+			return
+		}
+		h.errorPage(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err := h.setSession(w, user, true); err != nil {
-		if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
+		if errors.Is(err, service.ErrNoUser) {
 			h.errorPage(w, http.StatusUnauthorized, err)
 			return
 		}
@@ -130,8 +134,9 @@ func userFromGoogleInfo(r *http.Request, cfg *oauthConfig) (*models.User, error)
 	}
 
 	user := &models.User{
-		Username: strings.Split(u.Email, "@")[0],
-		Email:    u.Email,
+		Username:   strings.Split(u.Email, "@")[0],
+		Email:      u.Email,
+		AuthMethod: "google",
 	}
 
 	return user, nil

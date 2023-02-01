@@ -89,7 +89,7 @@ func (h *Handler) signUpCallbackGithub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.services.Authorization.CreateUser(*user, true); err != nil {
-		if errors.Is(err, service.ErrEmailTaken) {
+		if errors.Is(err, service.ErrEmailTaken) || errors.Is(err, service.ErrUsernameTaken) {
 			h.errorPage(w, http.StatusBadRequest, err)
 			return
 		}
@@ -98,7 +98,7 @@ func (h *Handler) signUpCallbackGithub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.setSession(w, user, true); err != nil {
-		if errors.Is(err, service.ErrNoUser) || errors.Is(err, service.ErrWrongPassword) {
+		if errors.Is(err, service.ErrNoUser) {
 			h.errorPage(w, http.StatusUnauthorized, err)
 			return
 		}
@@ -144,8 +144,9 @@ func (h *Handler) userFromGithubInfo(code string, cfg *oauthConfig) (*models.Use
 	}
 
 	user := &models.User{
-		Username: u.Username,
-		Email:    email,
+		Username:   u.Username,
+		Email:      email,
+		AuthMethod: "github",
 	}
 
 	return user, nil

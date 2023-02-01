@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"forum/internal/models"
@@ -40,15 +41,8 @@ func NewAuthService(repo repository.Authorization) *AuthService {
 	}
 }
 
-func (s *AuthService) CreateUser(user models.User, isOauth2 bool) error {
-	if _, err := s.repo.GetUser("", user.Email); err != sql.ErrNoRows {
-		if err == nil {
-			return ErrEmailTaken
-		}
-		return err
-	}
-
-	if _, err := s.repo.GetUser(user.Username, ""); err != sql.ErrNoRows {
+func (s *AuthService) CreateUser(newUser models.User, isOauth2 bool) error {
+	if _, err := s.repo.GetUser(newUser.Username); err != sql.ErrNoRows {
 		if err == nil {
 			return ErrUsernameTaken
 		}
@@ -56,19 +50,26 @@ func (s *AuthService) CreateUser(user models.User, isOauth2 bool) error {
 	}
 
 	if !isOauth2 {
-		if err := checkUserInfo(user); err != nil {
+		if err := checkUserInfo(newUser); err != nil {
 			return err
 		}
 
-		password, err := s.generatePasswordHash(user.Password)
+		password, err := s.generatePasswordHash(newUser.Password)
 		if err != nil {
 			return err
 		}
 
-		user.Password = password
+		newUser.Password = password
 	}
 
-	return s.repo.CreateUser(user)
+	if err := s.repo.CreateUser(newUser); err != nil {
+		if strings.Contains(err.Error(), "UNIQUE") {
+			return ErrEmailTaken
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (s *AuthService) SetSession(username, password string, isOauth2 bool) (models.Session, error) {
@@ -110,7 +111,7 @@ func (s *AuthService) UserByToken(token string) (models.User, error) {
 }
 
 func (s *AuthService) checkUser(username, password string, isOauth2 bool) (models.User, error) {
-	user, err := s.repo.GetUser(username, "")
+	user, err := s.repo.GetUser(username)
 	if err != nil {
 		return user, ErrNoUser
 	}

@@ -8,7 +8,7 @@ import (
 
 type Authorization interface {
 	CreateUser(user models.User) error
-	GetUser(username, email string) (models.User, error)
+	GetUser(username string) (models.User, error)
 	CreateSession(user models.Session) error
 	GetSession(token string) (models.Session, error)
 	DeleteSession(token string) error
@@ -28,24 +28,24 @@ func NewAuthSqlite(db *sql.DB) *AuthSqlite {
 
 func (s *AuthSqlite) CreateUser(user models.User) error {
 	query := `
-		INSERT INTO USERS (Username, Email, Password) VALUES ($1, $2, $3);
+		INSERT INTO USERS (Username, Email, Password, Method) VALUES ($1, $2, $3, $4);
 	`
 
-	if _, err := s.db.Exec(query, user.Username, user.Email, user.Password); err != nil {
+	if _, err := s.db.Exec(query, user.Username, user.Email, user.Password, user.AuthMethod); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *AuthSqlite) GetUser(username, email string) (models.User, error) {
+func (s *AuthSqlite) GetUser(username string) (models.User, error) {
 	query := `
-		SELECT ID, Username, Email, Password FROM USERS WHERE Username=$1 or Email = $2;
+		SELECT ID, Username, Email, Password, Method FROM USERS WHERE Username=$1;
 	`
 
 	var user models.User
 
-	if err := s.db.QueryRow(query, username, email).Scan(&user.ID, &user.Username, &user.Email, &user.Password); err != nil {
+	if err := s.db.QueryRow(query, username).Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.AuthMethod); err != nil {
 		return user, err
 	}
 
