@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+
 	"forum/internal/models"
 )
 
@@ -37,14 +38,10 @@ func (s *ReactionSqlite) CreateReactionPost(reaction models.Reaction) error {
 			return err
 		}
 	} else {
-		if vote == reaction.Vote {
-			if _, err := s.db.Exec(`DELETE FROM REACTIONS WHERE UserID = $1 AND PostID = $2 AND VOTE = $3`, reaction.UserID, reaction.PostID, vote); err != nil {
-				return err
-			}
-		} else {
-			if _, err := s.db.Exec(`DELETE FROM REACTIONS WHERE UserID = $1 AND PostID = $2 AND VOTE = $3`, reaction.UserID, reaction.PostID, vote); err != nil {
-				return err
-			}
+		if _, err := s.db.Exec(`DELETE FROM REACTIONS WHERE UserID = $1 AND PostID = $2 AND VOTE = $3`, reaction.UserID, reaction.PostID, vote); err != nil {
+			return err
+		}
+		if vote != reaction.Vote {
 			if _, err := s.db.Exec(queryInsert, reaction.UserID, reaction.PostID, reaction.Vote); err != nil {
 				return err
 			}
@@ -74,14 +71,10 @@ func (s *ReactionSqlite) CreateReactionComment(reaction models.Reaction) (int, e
 			return postID, err
 		}
 	} else {
-		if vote == reaction.Vote {
-			if _, err := s.db.Exec(`DELETE FROM REACTIONS WHERE UserID = $1 AND CommentID = $2 AND VOTE = $3`, reaction.UserID, reaction.CommentID, vote); err != nil {
-				return postID, err
-			}
-		} else {
-			if _, err := s.db.Exec(`DELETE FROM REACTIONS WHERE UserID = $1 AND CommentID = $2 AND VOTE = $3`, reaction.UserID, reaction.CommentID, vote); err != nil {
-				return postID, err
-			}
+		if _, err := s.db.Exec(`DELETE FROM REACTIONS WHERE UserID = $1 AND CommentID = $2 AND VOTE = $3`, reaction.UserID, reaction.CommentID, vote); err != nil {
+			return postID, err
+		}
+		if vote != reaction.Vote {
 			if _, err := s.db.Exec(queryInsert, reaction.UserID, reaction.CommentID, reaction.Vote); err != nil {
 				return postID, err
 			}
